@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  MyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: ec2_backup_fargate
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action: '*'
+  MyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: ec2_backup_fargate
+  MyCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: ec2_backup_fargate
+  MyTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ExecutionRoleArn: !Ref MyRole
+      TaskRoleArn: !Ref MyRole
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ContainerDefinitions:
+        -
+          Name: ec2_backup_fargate
+          Command:
+            - ./app.rb
+          Essential: true
+          Image: ryonext/ec2_backup_fargate:latest
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: us-east-1
+              awslogs-group: !Ref MyLogGroup
+              awslogs-stream-prefix: ec2_backup_fargate
